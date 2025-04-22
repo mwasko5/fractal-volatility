@@ -1,0 +1,68 @@
+#include <cuda_runtime.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+#include "kernel.cuh"
+
+#define NUM_ELEMENTS 4096
+
+#define BLOCK_SIZE 1024
+#define GRID_SIZE NUM_ELEMENTS/BLOCK_SIZE
+
+void random_generator(float* random_bins, float min, float max) {
+    srand((unsigned int)time(NULL));
+    
+    for (int i = 0; i < NUM_ELEMENTS; i++) {
+        random_bins[i] = min + ((float)rand() / RAND_MAX) * (max - min);
+    }
+}
+
+void print_fractal(float* bins) {
+    for (int i = 0; i < NUM_ELEMENTS; i++) {
+        printf("%.4f ", bins[i]);
+    }
+    printf("\n");
+}
+
+int main(void) {
+    // initialize arrays
+    float* seed_host;
+    float* seed_device;
+
+    float* bins_host;
+    float* bins_device;
+
+    // generate random seeds
+    seed_host = (float*)malloc(NUM_ELEMENTS * sizeof(float));
+    random_generator(seed_host, 0.4, 0.6);
+
+    // initialize host_bins
+    bins_host = (float*)malloc(NUM_ELEMENTS * sizeof(float));
+    
+    // memcpy the seeds to GPU and malloc the bins on device
+    if (cudaMalloc((void **)&bins_device, NUM_ELEMENTS * sizeof(float)) != cudaSuccess) {
+        printf("bins malloc error\n");
+    }
+
+    if (cudaMalloc((void **)&seed_device, NUM_ELEMENTS * sizeof(float)) != cudaSuccess) {
+        printf("seed malloc error\n");
+    }
+
+    if (cudaMemcpy(seed_device, seed_host, NUM_ELEMENTS * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+        printf("seed memcpy error from host to device\n");
+    }
+
+    dim3 blockDim(BLOCK_SIZE), gridDim(GRID_SIZE);
+
+    volatility_naive<<<blockDim, gridDim>>>(50, bins_device, seed_device);
+
+    // volatility_optimized<<<blockDim, gridDim>>>();
+
+    if (cudaMemcpy(bins_host, bins_device, NUM_ELEMENTS * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
+        printf("bins memcpy error from device to host\n");
+    }
+
+    print_fractal(bins_host);
+
+    return 0;
+}
