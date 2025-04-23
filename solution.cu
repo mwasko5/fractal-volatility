@@ -19,7 +19,7 @@ void random_generator(float* random_bins, float min, float max) {
 
 void print_fractal(float* bins) {
     for (int i = 0; i < NUM_ELEMENTS; i++) {
-        printf("%.4f ", bins[i]);
+        printf("%d: %.4f\n ", i, bins[i]);
     }
     printf("\n");
 }
@@ -36,8 +36,11 @@ int main(void) {
     seed_host = (float*)malloc(NUM_ELEMENTS * sizeof(float));
     random_generator(seed_host, 0.4, 0.6);
 
-    // initialize host_bins
+    // allocate memory and initialize host_bins
     bins_host = (float*)malloc(NUM_ELEMENTS * sizeof(float));
+	for (int i = 0; i < NUM_ELEMENTS; i++) {
+		bins_host[i] = 0;
+	}
     
     // memcpy the seeds to GPU and malloc the bins on device
     if (cudaMalloc((void **)&bins_device, NUM_ELEMENTS * sizeof(float)) != cudaSuccess) {
@@ -50,6 +53,10 @@ int main(void) {
 
     if (cudaMemcpy(seed_device, seed_host, NUM_ELEMENTS * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
         printf("seed memcpy error from host to device\n");
+    }
+	
+	if (cudaMemcpy(bins_device, bins_host, NUM_ELEMENTS * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess) {
+        printf("bins memcpy error from host to device\n");
     }
 
     dim3 blockDim(BLOCK_SIZE), gridDim(GRID_SIZE);
