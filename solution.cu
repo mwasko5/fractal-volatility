@@ -66,7 +66,9 @@ int main(void) {
 
     volatility_naive<<<blockDim, gridDim>>>(50, bins_device, seed_device);
 
-    // volatility_optimized<<<blockDim, gridDim>>>();
+    // copy constant memory to GPU for optimized
+    //cudaMemcpyToSymbol(seed_device_constant, &seed_host, 1024 * sizeof(float)); // seed device needs to be 1024 size
+    //volatility_optimized<<<blockDim, gridDim>>>(50, bins_device, seed_device_constant);
 
     if (cudaMemcpy(bins_host, bins_device, NUM_ELEMENTS * sizeof(float), cudaMemcpyDeviceToHost) != cudaSuccess) {
         printf("bins memcpy error from device to host\n");

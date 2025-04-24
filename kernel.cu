@@ -2,6 +2,8 @@
 
 #define NUM_ELEMENTS 4096
 
+__constant__ float seed_device_constant[1024];
+
 /*
     TODO: RESEARCH RANDOM NUMBER GENERATION IN GPU
         - could possible pre-process random numbers in CPU before sending to GPU in a shared memory array (optimzied version)
@@ -54,4 +56,50 @@ __global__ void volatility_naive(float initial_volatility, float* bins, float* r
 
 __global__ void volatility_optimized(float initial_volatility, float* bins, float* random_seeds) {
     // load random seeds into shared memory and bins
+    // max constant memory is 1024 float values, just load the max amount and then do data manipulation on it
+
+    //__shared__ float shared_bins[4096]; // this is the max size, need to do batches for optimized version if wanna use shared
+    
+    // algorithmic optimization idea: if the previous bin is 0, no sense in continuing computations and can end the loop
+    int i = threadIdx.x + blockIdx.x * blockDim.x; // global index
+
+    const int middle_index = NUM_ELEMENTS / 2; // save as variable to save computational power
+    
+    if (i == middle_index) { 
+        bins[middle_index] = initial_volatility;
+    }
+
+    if (i < middle_index) {
+        int indexing_left = middle_index - 1;
+        float summation = initial_volatility;
+
+        while (indexing_left > i) {
+            if (summation < 0.0001) {
+                break;
+            }
+            else {
+                summation = (summation * random_seeds[indexing_left]);
+                indexing_left -= 1;
+            }
+        }
+
+        bins[i] = summation * random_seeds[i];
+    }
+    else if (i > middle_index) {
+        int indexing_right = middle_index + 1;
+        float summation = initial_volatility;
+
+        while (indexing_right < i) {
+            if (summation < 0.0001) {
+                break;
+            }
+            else {
+                summation = (summation * random_seeds[indexing_right]);
+                indexing_right += 1;
+            }
+        }
+
+        bins[i] = summation * random_seeds[i];
+    }
+    
 }
