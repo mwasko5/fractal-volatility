@@ -28,6 +28,12 @@ void print_fractal(float* bins) {
 }
 
 int main(void) {
+    // timing related things
+    cudaEvent_t astartEvent, astopEvent;
+    float aelapsedTime;
+    cudaEventCreate(&astartEvent);
+    cudaEventCreate(&astopEvent);
+
     // initialize arrays
     float* seed_host;
     float* seed_device;
@@ -64,7 +70,13 @@ int main(void) {
 
     dim3 blockDim(BLOCK_SIZE), gridDim(GRID_SIZE);
 
+    cudaEventRecord(astartEvent, 0);
+    
     volatility_naive<<<blockDim, gridDim>>>(50, bins_device, seed_device);
+
+    cudaEventRecord(astopEvent, 0);
+    cudaEventSynchronize(astopEvent);
+    cudaEventElapsedTime(&aelapsedTime, astartEvent, astopEvent);
 
     // copy constant memory to GPU for optimized
     //cudaMemcpyToSymbol(seed_device_constant, &seed_host, 1024 * sizeof(float)); // seed device needs to be 1024 size
@@ -74,7 +86,8 @@ int main(void) {
         printf("bins memcpy error from device to host\n");
     }
 
-    print_fractal(bins_host);
+    //print_fractal(bins_host);
+    printf("Elapsed kernel execution time: %f", aelapsedTime);
 
     // free GPU and host memory
     cudaFree(bins_device);
