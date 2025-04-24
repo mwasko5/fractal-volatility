@@ -54,7 +54,7 @@ __global__ void volatility_naive(float initial_volatility, float* bins, float* r
     }
 }
 
-__global__ void volatility_optimized(float initial_volatility, float* bins, float* random_seeds) {
+__global__ void volatility_optimized(float initial_volatility, float* bins) {
     // load random seeds into shared memory and bins
     // max constant memory is 1024 float values, just load the max amount and then do data manipulation on it
 
@@ -78,12 +78,12 @@ __global__ void volatility_optimized(float initial_volatility, float* bins, floa
                 break;
             }
             else {
-                summation = (summation * random_seeds[indexing_left]);
+                summation = (summation * seed_device_constant[indexing_left]);
                 indexing_left -= 1;
             }
         }
 
-        bins[i] = summation * random_seeds[i];
+        bins[i] = summation * seed_device_constant[i];
     }
     else if (i > middle_index) {
         int indexing_right = middle_index + 1;
@@ -94,12 +94,12 @@ __global__ void volatility_optimized(float initial_volatility, float* bins, floa
                 break;
             }
             else {
-                summation = (summation * random_seeds[indexing_right]);
+                summation = (summation * seed_device_constant[indexing_right]);
                 indexing_right += 1;
             }
         }
 
-        bins[i] = summation * random_seeds[i];
+        bins[i] = summation * seed_device_constant[i];
     }
     
 }
