@@ -6,6 +6,9 @@
 
 #define NUM_ELEMENTS 4096
 
+#define SEED_MAX 0.9
+#define SEED_MIN 0.7
+
 #define BLOCK_SIZE 1024
 #define GRID_SIZE NUM_ELEMENTS/BLOCK_SIZE
 
@@ -34,7 +37,7 @@ int main(void) {
 
     // generate random seeds
     seed_host = (float*)malloc(NUM_ELEMENTS * sizeof(float));
-    random_generator(seed_host, 0.4, 0.6);
+    random_generator(seed_host, SEED_MIN, SEED_MAX);
 
     // allocate memory and initialize host_bins
     bins_host = (float*)malloc(NUM_ELEMENTS * sizeof(float));
@@ -70,6 +73,13 @@ int main(void) {
     }
 
     print_fractal(bins_host);
+
+    // free GPU and host memory
+    cudaFree(bins_device);
+    cudaFree(seed_device);
+
+    free(bins_host);
+    free(seed_host);
 
     return 0;
 }

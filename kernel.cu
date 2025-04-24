@@ -17,7 +17,11 @@ __global__ void volatility_naive(float initial_volatility, float* bins, float* r
 
     const int middle_index = NUM_ELEMENTS / 2; // save as variable to save computational power
     
-    bins[middle_index] = initial_volatility;
+    if (i == middle_index) { 
+        bins[middle_index] = initial_volatility;
+    }
+    
+    __syncthreads();
 
     // figure out how to use thread index to do this position calculation
     if (i >= NUM_ELEMENTS) { 
@@ -25,22 +29,26 @@ __global__ void volatility_naive(float initial_volatility, float* bins, float* r
     }
 
     if (i < middle_index) {
-        int left = middle_index - i - 1;
-        while (left >= 0) {
-            bins[left] = bins[left + 1] * random_seeds[left];
+        int indexing_left = middle_index - 1;
+        float summation = initial_volatility;
 
-            left -= 1;
-            __syncthreads();
+        while (indexing_left > i) {
+            summation = (summation * random_seeds[indexing_left]);
+            indexing_left -= 1;
         }
-    } 
+
+        bins[i] = summation * random_seeds[i];
+    }
     else if (i > middle_index) {
-        int right = i;
-        while (right < NUM_ELEMENTS) {
-            bins[right] = bins[right - 1] * random_seeds[right];
+        int indexing_right = middle_index + 1;
+        float summation = initial_volatility;
 
-            right += 1;
-            __syncthreads();
+        while (indexing_right < i) {
+            summation = (summation * random_seeds[indexing_right]);
+            indexing_right += 1;
         }
+
+        bins[i] = summation * random_seeds[i];
     }
 }
 
