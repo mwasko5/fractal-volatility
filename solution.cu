@@ -5,19 +5,20 @@
 #include "kernel.cuh"
 
 #define NUM_ELEMENTS 4096
+#define NUM_RANDOM 4096
 
-#define SEED_MAX 0.9
-#define SEED_MIN 0.7
+#define SEED_MAX 0.99
+#define SEED_MIN 0.95
 
 #define BLOCK_SIZE 1024
 #define GRID_SIZE NUM_ELEMENTS/BLOCK_SIZE
 
-extern __constant__ float seed_device_constant[1024];
+__constant__ float seed_device_constant[1024];
 
 void random_generator(float* random_bins, float min, float max) {
     srand((unsigned int)time(NULL));
     
-    for (int i = 0; i < NUM_ELEMENTS; i++) {
+    for (int i = 0; i < NUM_RANDOM; i++) {
         random_bins[i] = min + ((float)rand() / RAND_MAX) * (max - min);
     }
 }
@@ -44,9 +45,16 @@ int main(void) {
     float* bins_device;
 
     // generate random seeds
-    seed_host = (float*)malloc(NUM_ELEMENTS * sizeof(float));
+    seed_host = (float*)malloc(NUM_RANDOM * sizeof(float));
+	//seed_host = (float*)malloc(NUM_ELEMENTS * sizeof(float));
     random_generator(seed_host, SEED_MIN, SEED_MAX);
-
+	
+	/*
+	for (int i = 0; i < 1024; i++) {
+		printf("%d: %f\n", i, seed_host[i]);
+	}
+	*/  
+	
     // allocate memory and initialize host_bins
     bins_host = (float*)malloc(NUM_ELEMENTS * sizeof(float));
 	for (int i = 0; i < NUM_ELEMENTS; i++) {
@@ -73,13 +81,15 @@ int main(void) {
     dim3 blockDim(BLOCK_SIZE), gridDim(GRID_SIZE);
 
     // copy constant memory to GPU for optimized
-    cudaMemcpyToSymbol(seed_device_constant, &seed_host, 1024 * sizeof(float)); // seed device needs to be 1024 size
+    if (cudaMemcpyToSymbol(seed_device_constant, seed_host, 1024 * sizeof(float)) != cudaSuccess) { // seed device needs to be 1024 size
+		printf("memcpy to constant memory error\n");
+	} 
 
     cudaEventRecord(astartEvent, 0);
     
     //volatility_naive<<<blockDim, gridDim>>>(50, bins_device, seed_device);
 
-    volatility_optimized<<<blockDim, gridDim>>>(50, bins_device);
+    volatility_optimized<<<blockDim, gridDim>>>(1000000, bins_device, seed_device);
 
     cudaEventRecord(astopEvent, 0);
     cudaEventSynchronize(astopEvent);
@@ -89,8 +99,9 @@ int main(void) {
         printf("bins memcpy error from device to host\n");
     }
 
-    //print_fractal(bins_host);
-    printf("Elapsed kernel execution time: %f", aelapsedTime);
+    print_fractal(bins_host);
+	  
+	printf("Elapsed kernel execution time: %f ms\n", aelapsedTime);
 
     // free GPU and host memory
     cudaFree(bins_device);

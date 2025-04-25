@@ -54,7 +54,7 @@ __global__ void volatility_naive(float initial_volatility, float* bins, float* r
     }
 }
 
-__global__ void volatility_optimized(float initial_volatility, float* bins) {
+__global__ void volatility_optimized(float initial_volatility, float* bins, float* random_seeds) {
     // load random seeds into shared memory and bins
     // max constant memory is 1024 float values, just load the max amount and then do data manipulation on it
 
@@ -69,21 +69,28 @@ __global__ void volatility_optimized(float initial_volatility, float* bins) {
         bins[middle_index] = initial_volatility;
     }
 
+    __syncthreads();
+
+    // figure out how to use thread index to do this position calculation
+    if (i >= NUM_ELEMENTS) { 
+        return;
+    }
+
     if (i < middle_index) {
         int indexing_left = middle_index - 1;
         float summation = initial_volatility;
 
         while (indexing_left > i) {
             if (summation < 0.0001) {
-                break;
+                break; // end doing trivial computations & conditional checks and just write the summation to all remaining bins
             }
             else {
-                summation = (summation * seed_device_constant[indexing_left]);
+                summation = (summation * random_seeds[indexing_left]);
                 indexing_left -= 1;
             }
         }
 
-        bins[i] = summation * seed_device_constant[i];
+        bins[i] = summation * random_seeds[i];
     }
     else if (i > middle_index) {
         int indexing_right = middle_index + 1;
@@ -91,15 +98,15 @@ __global__ void volatility_optimized(float initial_volatility, float* bins) {
 
         while (indexing_right < i) {
             if (summation < 0.0001) {
-                break;
+                break; // end doing trivial computations & conditional checks and just write the summation to all remaining bins
             }
             else {
-                summation = (summation * seed_device_constant[indexing_right]);
+                summation = (summation * random_seeds[indexing_right]);
                 indexing_right += 1;
             }
         }
 
-        bins[i] = summation * seed_device_constant[i];
+        bins[i] = summation * random_seeds[i];
     }
     
 }
