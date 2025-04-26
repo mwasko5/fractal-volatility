@@ -4,16 +4,14 @@
 
 #include "kernel.cuh"
 
-#define NUM_ELEMENTS 4096
+#define NUM_ELEMENTS 16384
 #define NUM_RANDOM 4096
 
-#define SEED_MAX 0.99
-#define SEED_MIN 0.95
+#define SEED_MAX 0.995
+#define SEED_MIN 0.99
 
 #define BLOCK_SIZE 1024
 #define GRID_SIZE NUM_ELEMENTS/BLOCK_SIZE
-
-__constant__ float seed_device_constant[1024];
 
 void random_generator(float* random_bins, float min, float max) {
     srand((unsigned int)time(NULL));
@@ -81,15 +79,17 @@ int main(void) {
     dim3 blockDim(BLOCK_SIZE), gridDim(GRID_SIZE);
 
     // copy constant memory to GPU for optimized
+	/*
     if (cudaMemcpyToSymbol(seed_device_constant, seed_host, 1024 * sizeof(float)) != cudaSuccess) { // seed device needs to be 1024 size
 		printf("memcpy to constant memory error\n");
 	} 
+	*/
 
     cudaEventRecord(astartEvent, 0);
     
-    //volatility_naive<<<blockDim, gridDim>>>(50, bins_device, seed_device);
+    volatility_naive<<<blockDim, gridDim>>>(100000000, bins_device, seed_device);
 
-    volatility_optimized<<<blockDim, gridDim>>>(1000000, bins_device, seed_device);
+    //volatility_optimized<<<blockDim, gridDim>>>(100000000, bins_device, seed_device);
 
     cudaEventRecord(astopEvent, 0);
     cudaEventSynchronize(astopEvent);

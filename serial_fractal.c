@@ -5,8 +5,8 @@
 //#define NUM_ELEMENTS 131072
 #define NUM_ELEMENTS 4096
 
-#define MAX_RANDOM_SEED 0.9
-#define MIN_RANDOM_SEED 0.7
+#define MAX_RANDOM_SEED 0.995
+#define MIN_RANDOM_SEED 0.99
 
 void generate_fractal(float initial_volatility, float* bins, float* random_seeds);
 
@@ -21,6 +21,8 @@ int main(void) {
     
     start = clock();
    
+    float initial_volatility = 1000000.0f;
+
     float* rand_seeds; 
     float* fractal;
 
@@ -29,7 +31,7 @@ int main(void) {
 
     generate_seeds(rand_seeds, MIN_RANDOM_SEED, MAX_RANDOM_SEED);
 
-    generate_fractal(100.0, fractal, rand_seeds);
+    generate_fractal(initial_volatility, fractal, rand_seeds);
     
     //print_fractal(fractal);
 
